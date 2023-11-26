@@ -29,6 +29,20 @@ public:
 
     FloodFillNeighbor currentFloodFillNeighbor = FloodFillNeighbor::Neighborhood4; // Default value is 4
 
+    void create3DObject();
+    QPoint lastMousePos;
+    float rotationSpeed = 1.0f;
+
+    float getRotationX() const { return rotationX; }
+    float getRotationY() const { return rotationY; }
+
+private:
+    QVector<QVector3D> vertices;  // Vertices do objeto 3D
+    QVector<float> zBuffer;       // Z-Buffer para rastrear a profundidade
+    float rotationX, rotationY;   // Ângulos de rotação
+
+    QTimer* rotationTimer;
+    void updateRotation();
 
 protected:
     void mouseMoveEvent(QMouseEvent *mouse_event);
@@ -44,6 +58,7 @@ protected:
 
 signals:
     void sendMousePosition(QPoint&);
+    void rotationChanged();
 
 };
 

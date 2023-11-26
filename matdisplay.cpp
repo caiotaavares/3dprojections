@@ -2,6 +2,8 @@
 
 #include <QPoint>
 #include <stack>
+#include <QVector3D>
+#include <QTimer>
 
 matDisplay::matDisplay(QWidget *parent) : QLabel(parent)
 {
@@ -150,6 +152,88 @@ void matDisplay::onFloodFillNeighborChanged(int index)
     }
 }
 
+void matDisplay::create3DObject()
+{
+    rotationTimer = new QTimer(this);
+    connect(rotationTimer, &QTimer::timeout, this, &matDisplay::updateRotation);
+    rotationTimer->start(20); // Tempo em milissegundos entre as atualizações de rotação
+
+    setFixedSize(500, 500);
+
+    // Inicialize um cubo 3D
+    float size = 20.0f;
+    this->vertices.clear();  // Limpe os vértices antes de adicionar novos
+    this->vertices << QVector3D(-size, -size, -size)
+                   << QVector3D(size, -size, -size)
+                   << QVector3D(size, size, -size)
+                   << QVector3D(-size, size, -size)
+                   << QVector3D(-size, -size, size)
+                   << QVector3D(size, -size, size)
+                   << QVector3D(size, size, size)
+                   << QVector3D(-size, size, size);
+
+    // Inicialize o zBuffer
+    zBuffer.fill(std::numeric_limits<float>::infinity(), width() * height());
+
+    // Projeção 3D para 2D
+    QVector<QPoint> projectedPoints;
+    for (const auto& vertex : vertices) {
+        // Aplicar rotação
+        float rotatedX = vertex.x() * cos(qDegreesToRadians(rotationY)) - vertex.z() * sin(qDegreesToRadians(rotationY));
+        float rotatedZ = vertex.x() * sin(qDegreesToRadians(rotationY)) + vertex.z() * cos(qDegreesToRadians(rotationY));
+
+        // Aplicar projeção
+        float projectedX = rotatedX * cos(qDegreesToRadians(this->rotationX)) + vertex.y() * sin(qDegreesToRadians(this->rotationX));
+        float projectedY = vertex.y() * cos(qDegreesToRadians(this->rotationX)) - rotatedX * sin(qDegreesToRadians(this->rotationX));
+
+        // Escala e translada para o centro da tela
+        int screenX = static_cast<int>(projectedX * 5) + width() / 2;
+        int screenY = static_cast<int>(projectedY * 5) + height() / 2;
+
+        projectedPoints.push_back(QPoint(screenX, screenY));
+    }
+
+    // Desenha linhas entre os pontos projetados
+    drawLine(projectedPoints[0], projectedPoints[1]);
+    drawLine(projectedPoints[1], projectedPoints[2]);
+    drawLine(projectedPoints[2], projectedPoints[3]);
+    drawLine(projectedPoints[3], projectedPoints[0]);
+    drawLine(projectedPoints[4], projectedPoints[5]);
+    drawLine(projectedPoints[5], projectedPoints[6]);
+    drawLine(projectedPoints[6], projectedPoints[7]);
+    drawLine(projectedPoints[7], projectedPoints[4]);
+    drawLine(projectedPoints[0], projectedPoints[4]);
+    drawLine(projectedPoints[1], projectedPoints[5]);
+    drawLine(projectedPoints[2], projectedPoints[6]);
+    drawLine(projectedPoints[3], projectedPoints[7]);
+
+    // Redesenha a cena após criar o objeto 3D
+    repaint();
+}
+
+void matDisplay::updateRotation()
+{
+    // Atualiza os ângulos de rotação para fazer o objeto girar
+    rotationX += 1.0f;
+    rotationY += 1.0f;
+
+    // Cria um novo pixmap para desenhar
+    QPixmap newPixmap(size());
+
+    // Inicializa um pintor com o novo pixmap
+    QPainter painter(&newPixmap);
+    painter.fillRect(rect(), Qt::black);
+
+    // Chama a função create3DObject para redesenhar o objeto 3D
+    create3DObject();
+
+    // Define o novo pixmap no QLabel
+    setPixmap(newPixmap);
+
+    // Emite o sinal para notificar a mudança na rotação
+    emit rotationChanged();
+}
+
 void matDisplay::setDrawMode(int newMode)
 {
     mode = newMode;
@@ -170,14 +254,4 @@ void matDisplay::mousePressEvent(QMouseEvent *mouse_event)
             }
         }
     }
-//    QMessageBox msg;
-//    if(mouse_event->button() == Qt::LeftButton) {
-//        msg.setText("Botão esquerdo pressionado!");
-//        msg.exec();
-//    }
-
-//    if (mouse_event->button() == Qt::RightButton) {
-//        msg.setText("Botão direito pressionado!");
-//        msg.exec();
-//    }
 }
