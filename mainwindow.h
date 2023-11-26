@@ -21,5 +21,8 @@ private:
 public slots:
     void showMousePositions(QPoint &pos);
 
+private slots:
+    void on_pushButtonDrawTriangle_clicked();
+    void on_pushButtonFloodFill_clicked();
 };
 #endif // MAINWINDOW_H
