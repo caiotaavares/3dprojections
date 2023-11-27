@@ -26,5 +26,6 @@ private slots:
     void on_pushButtonDrawTriangle_clicked();
     void on_pushButtonFloodFill_clicked();
     void on_pushButtonCreate3D_clicked();
+    void on_pushButtonRotate_clicked();
 };
 #endif // MAINWINDOW_H

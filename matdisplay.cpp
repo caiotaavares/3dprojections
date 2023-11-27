@@ -5,6 +5,11 @@
 #include <QVector3D>
 #include <QTimer>
 
+/**
+ * CONSTRUTOR
+ * @brief matDisplay::matDisplay
+ * @param parent
+ */
 matDisplay::matDisplay(QWidget *parent) : QLabel(parent)
 {
     this->setMouseTracking(true);
@@ -19,7 +24,9 @@ matDisplay::matDisplay(QWidget *parent) : QLabel(parent)
     // Define a imagem inicial no QLabel
     this->setPixmap(QPixmap::fromImage(image));
 }
-
+/*
+ * AUXILIARES
+ */
 void matDisplay::mouseMoveEvent(QMouseEvent *mouse_event)
 {
     QPoint mouse_pos = mouse_event->pos();
@@ -84,6 +91,9 @@ void matDisplay::drawTriangle(const QPoint &center, int size, int angle1, int an
     drawLine(p3, center);
 }
 
+/*
+ * FLOOD FILL
+ */
 void matDisplay::floodFill(int x, int y, const QColor &newColor)
 {
     // Obtém a imagem atual
@@ -152,13 +162,15 @@ void matDisplay::onFloodFillNeighborChanged(int index)
     }
 }
 
+/*
+ * PROJEÇÕES 3D
+ */
 void matDisplay::create3DObject()
 {
-    rotationTimer = new QTimer(this);
-    connect(rotationTimer, &QTimer::timeout, this, &matDisplay::updateRotation);
-    rotationTimer->start(20); // Tempo em milissegundos entre as atualizações de rotação
-
-    setFixedSize(500, 500);
+    // Configuração do timer para atualizar a rotação periodicamente
+//    rotationTimer = new QTimer(this);
+//    connect(rotationTimer, &QTimer::timeout, this, &matDisplay::rotateCube);
+//    rotationTimer->start(16); // Tempo em milissegundos entre as atualizações de rotação
 
     // Inicialize um cubo 3D
     float size = 20.0f;
@@ -175,65 +187,112 @@ void matDisplay::create3DObject()
     // Inicialize o zBuffer
     zBuffer.fill(std::numeric_limits<float>::infinity(), width() * height());
 
+    // Lista de faces do cubo (índices dos vértices)
+    QVector<QVector<int>> cubeFaces = {
+        {0, 1, 2, 3},  // Face frontal
+        {4, 5, 6, 7},  // Face traseira
+        {0, 4, 5, 1},  // Lado esquerdo
+        {2, 3, 7, 6},  // Lado direito
+        {0, 3, 7, 4},  // Topo
+        {1, 2, 6, 5}   // Base
+    };
+
+    // Vetor para armazenar os pontos projetados
+    QVector<QVector<QPoint>> projectedPointsList;
+
     // Projeção 3D para 2D
-    QVector<QPoint> projectedPoints;
-    for (const auto& vertex : vertices) {
-        // Aplicar rotação em torno do eixo Y
-        float rotatedX = vertex.x() * cos(qDegreesToRadians(rotationY)) - vertex.z() * sin(qDegreesToRadians(rotationY));
-        float rotatedZ = vertex.x() * sin(qDegreesToRadians(rotationY)) + vertex.z() * cos(qDegreesToRadians(rotationY));
+    for (const auto &face : cubeFaces)
+    {
+        QVector<QPoint> projectedPoints;
+        for (const auto &vertexIndex : face)
+        {
+            const QVector3D &vertex = vertices[vertexIndex];
 
-        // Aplicar rotação em torno do eixo X
-        float rotatedY = vertex.y() * cos(qDegreesToRadians(rotationX)) - rotatedZ * sin(qDegreesToRadians(rotationX));
-        float rotatedZ2 = vertex.y() * sin(qDegreesToRadians(rotationX)) + rotatedZ * cos(qDegreesToRadians(rotationX));
+            // Aplicar rotação em torno do eixo Y
+            float rotatedX = vertex.x() * cos(qDegreesToRadians(rotationY)) - vertex.z() * sin(qDegreesToRadians(rotationY));
+            float rotatedZ = vertex.x() * sin(qDegreesToRadians(rotationY)) + vertex.z() * cos(qDegreesToRadians(rotationY));
 
-        // Aplicar rotação em torno do eixo Z
-        float finalX = rotatedX * cos(qDegreesToRadians(rotationZ)) - rotatedY * sin(qDegreesToRadians(rotationZ));
-        float finalY = rotatedX * sin(qDegreesToRadians(rotationZ)) + rotatedY * cos(qDegreesToRadians(rotationZ));
+            // Aplicar rotação em torno do eixo X
+            float rotatedY = vertex.y() * cos(qDegreesToRadians(rotationX)) - rotatedZ * sin(qDegreesToRadians(rotationX));
+            float rotatedZ2 = vertex.y() * sin(qDegreesToRadians(rotationX)) + rotatedZ * cos(qDegreesToRadians(rotationX));
 
-        // Projetar para o plano 2D
-        float projectedX = finalX * cos(qDegreesToRadians(this->rotationX)) + finalY * sin(qDegreesToRadians(this->rotationX));
-        float projectedY = finalY * cos(qDegreesToRadians(this->rotationX)) - finalX * sin(qDegreesToRadians(this->rotationX));
+            // Aplicar rotação em torno do eixo Z
+            float finalX = rotatedX * cos(qDegreesToRadians(rotationZ)) - rotatedY * sin(qDegreesToRadians(rotationZ));
+            float finalY = rotatedX * sin(qDegreesToRadians(rotationZ)) + rotatedY * cos(qDegreesToRadians(rotationZ));
 
-        // Escala e translada para o centro da tela
-        int screenX = static_cast<int>(projectedX * 5) + width() / 2;
-        int screenY = static_cast<int>(projectedY * 5) + height() / 2;
+            // Projetar para o plano 2D
+            float projectedX = finalX;
+            float projectedY = finalY;
 
-        // Verifica a profundidade (Z-Buffer) e desenha o ponto se ele estiver mais próximo
-        int index = screenY * width() + screenX;
-        float z = vertex.z();
-        if (z < zBuffer[index]) {
-            zBuffer[index] = z;
-            drawPixel(QPoint(screenX, screenY));
+            // Escala e translada para o centro da tela
+            int screenX = static_cast<int>(projectedX * 5) + width() / 2;
+            int screenY = static_cast<int>(projectedY * 5) + height() / 2;
+
+            // Adiciona o ponto projetado ao vetor
+            projectedPoints.push_back(QPoint(screenX, screenY));
         }
 
-        projectedPoints.push_back(QPoint(screenX, screenY));  // Adiciona o ponto projetado
+        // Adiciona o vetor de pontos projetados ao vetor de listas de pontos
+        projectedPointsList.push_back(projectedPoints);
     }
 
-    // Desenha linhas entre os pontos projetados
-    drawLine(projectedPoints[0], projectedPoints[1]);
-    drawLine(projectedPoints[1], projectedPoints[2]);
-    drawLine(projectedPoints[2], projectedPoints[3]);
-    drawLine(projectedPoints[3], projectedPoints[0]);
-    drawLine(projectedPoints[4], projectedPoints[5]);
-    drawLine(projectedPoints[5], projectedPoints[6]);
-    drawLine(projectedPoints[6], projectedPoints[7]);
-    drawLine(projectedPoints[7], projectedPoints[4]);
-    drawLine(projectedPoints[0], projectedPoints[4]);
-    drawLine(projectedPoints[1], projectedPoints[5]);
-    drawLine(projectedPoints[2], projectedPoints[6]);
-    drawLine(projectedPoints[3], projectedPoints[7]);
+    // Desenha as linhas e polígonos preenchidos após o loop
+    for (const auto &projectedPoints : projectedPointsList)
+    {
+        for (int i = 0; i < projectedPoints.size(); ++i)
+        {
+            int nextIndex = (i + 1) % projectedPoints.size();
+            drawLine(projectedPoints[i], projectedPoints[nextIndex]);
+        }
 
-    // Redesenha a cena após criar o objeto 3D
-    repaint();
+        drawPolygon(projectedPoints);
+    }
 }
 
-
-void matDisplay::updateRotation()
+void matDisplay::drawPolygon(const QPolygon &polygon)
 {
-    // Atualiza os ângulos de rotação para fazer o objeto girar
-    rotationX += 1.0f;
-    rotationY += 1.0f;
-    rotationZ += 1.0f;
+    // Obtém a imagem atual
+    QImage image = this->pixmap().toImage();
+
+    // Cria um QPainter para desenhar na imagem
+    QPainter painter(&image);
+
+    // Define a cor do pincel para preencher o polígono
+    painter.setBrush(QColor(0, 0, 255)); // Cor azul, você pode ajustar conforme necessário
+
+    // Desenha o polígono preenchido
+    painter.drawPolygon(polygon);
+
+    // Atualiza a imagem no widget
+    this->setPixmap(QPixmap::fromImage(image));
+}
+
+void matDisplay::drawFilledPolygon(const QVector<QPoint> &polygon)
+{
+    // Não aplicar transformações adicionais aqui, já que elas já foram aplicadas durante a projeção 3D
+
+    // Obtém a imagem atual
+    QImage image = this->pixmap().toImage();
+
+    // Cria um QPainter para desenhar na imagem
+    QPainter painter(&image);
+
+    // Define a cor do pincel para preencher o polígono
+    painter.setBrush(QColor(0, 0, 255)); // Cor azul, você pode ajustar conforme necessário
+
+    // Desenha o polígono preenchido
+    painter.drawPolygon(polygon);
+
+    // Atualiza a imagem no widget
+    this->setPixmap(QPixmap::fromImage(image));
+}
+
+void matDisplay::rotateCube(float angleX, float angleY, float angleZ)
+{
+    // Atualiza os ângulos de rotação para girar o cubo
+    rotationX += angleX;
+    rotationY += angleY;
+    rotationZ += angleZ;
 
     // Cria um novo pixmap para desenhar
     QPixmap newPixmap(size());
@@ -242,11 +301,11 @@ void matDisplay::updateRotation()
     QPainter painter(&newPixmap);
     painter.fillRect(rect(), Qt::black);
 
-    // Chama a função create3DObject para redesenhar o objeto 3D
-    create3DObject();
-
     // Define o novo pixmap no QLabel
     setPixmap(newPixmap);
+
+    // Redesenha o objeto 3D com as novas rotações
+    create3DObject();
 
     // Emite o sinal para notificar a mudança na rotação
     emit rotationChanged();

@@ -53,3 +53,9 @@ void MainWindow::on_pushButtonCreate3D_clicked()
     ui->mat_Display->create3DObject();
 }
 
+
+void MainWindow::on_pushButtonRotate_clicked()
+{
+    ui->mat_Display->rotateCube(10.0f, 10.0f, 10.0f);
+}
+

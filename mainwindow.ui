@@ -56,7 +56,7 @@ color: rgb(255, 255, 255);</string>
       <x>760</x>
       <y>30</y>
       <width>181</width>
-      <height>91</height>
+      <height>121</height>
      </rect>
     </property>
     <property name="title">
@@ -77,13 +77,20 @@ color: rgb(255, 255, 255);</string>
        </property>
       </widget>
      </item>
+     <item row="2" column="0">
+      <widget class="QPushButton" name="pushButtonRotate">
+       <property name="text">
+        <string>Rotacionar</string>
+       </property>
+      </widget>
+     </item>
     </layout>
    </widget>
    <widget class="QGroupBox" name="groupBox_2">
     <property name="geometry">
      <rect>
       <x>760</x>
-      <y>130</y>
+      <y>160</y>
       <width>181</width>
       <height>131</height>
      </rect>
