@@ -178,19 +178,35 @@ void matDisplay::create3DObject()
     // Projeção 3D para 2D
     QVector<QPoint> projectedPoints;
     for (const auto& vertex : vertices) {
-        // Aplicar rotação
+        // Aplicar rotação em torno do eixo Y
         float rotatedX = vertex.x() * cos(qDegreesToRadians(rotationY)) - vertex.z() * sin(qDegreesToRadians(rotationY));
         float rotatedZ = vertex.x() * sin(qDegreesToRadians(rotationY)) + vertex.z() * cos(qDegreesToRadians(rotationY));
 
-        // Aplicar projeção
-        float projectedX = rotatedX * cos(qDegreesToRadians(this->rotationX)) + vertex.y() * sin(qDegreesToRadians(this->rotationX));
-        float projectedY = vertex.y() * cos(qDegreesToRadians(this->rotationX)) - rotatedX * sin(qDegreesToRadians(this->rotationX));
+        // Aplicar rotação em torno do eixo X
+        float rotatedY = vertex.y() * cos(qDegreesToRadians(rotationX)) - rotatedZ * sin(qDegreesToRadians(rotationX));
+        float rotatedZ2 = vertex.y() * sin(qDegreesToRadians(rotationX)) + rotatedZ * cos(qDegreesToRadians(rotationX));
+
+        // Aplicar rotação em torno do eixo Z
+        float finalX = rotatedX * cos(qDegreesToRadians(rotationZ)) - rotatedY * sin(qDegreesToRadians(rotationZ));
+        float finalY = rotatedX * sin(qDegreesToRadians(rotationZ)) + rotatedY * cos(qDegreesToRadians(rotationZ));
+
+        // Projetar para o plano 2D
+        float projectedX = finalX * cos(qDegreesToRadians(this->rotationX)) + finalY * sin(qDegreesToRadians(this->rotationX));
+        float projectedY = finalY * cos(qDegreesToRadians(this->rotationX)) - finalX * sin(qDegreesToRadians(this->rotationX));
 
         // Escala e translada para o centro da tela
         int screenX = static_cast<int>(projectedX * 5) + width() / 2;
         int screenY = static_cast<int>(projectedY * 5) + height() / 2;
 
-        projectedPoints.push_back(QPoint(screenX, screenY));
+        // Verifica a profundidade (Z-Buffer) e desenha o ponto se ele estiver mais próximo
+        int index = screenY * width() + screenX;
+        float z = vertex.z();
+        if (z < zBuffer[index]) {
+            zBuffer[index] = z;
+            drawPixel(QPoint(screenX, screenY));
+        }
+
+        projectedPoints.push_back(QPoint(screenX, screenY));  // Adiciona o ponto projetado
     }
 
     // Desenha linhas entre os pontos projetados
@@ -211,11 +227,13 @@ void matDisplay::create3DObject()
     repaint();
 }
 
+
 void matDisplay::updateRotation()
 {
     // Atualiza os ângulos de rotação para fazer o objeto girar
     rotationX += 1.0f;
     rotationY += 1.0f;
+    rotationZ += 1.0f;
 
     // Cria um novo pixmap para desenhar
     QPixmap newPixmap(size());

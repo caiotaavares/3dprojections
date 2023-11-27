@@ -38,8 +38,10 @@ public:
 
 private:
     QVector<QVector3D> vertices;  // Vertices do objeto 3D
-    QVector<float> zBuffer;       // Z-Buffer para rastrear a profundidade
-    float rotationX, rotationY;   // Ângulos de rotação
+    QVector<float> zBuffer;
+    float rotationX = 0.0f;
+    float rotationY = 0.0f;
+    float rotationZ = 0.0f;
 
     QTimer* rotationTimer;
     void updateRotation();
